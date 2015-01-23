@@ -14,7 +14,7 @@ class Arbitrary(object):
 
     """
 
-    def _genOrMake(self, f):
+    def genOrMake(self, f):
         if callable(f):
             return f(self)
         return f
@@ -54,7 +54,7 @@ class Arbitrary(object):
         """Stream of random lists up to len size.
 
         """
-        iter = self._genOrMake(items)
+        iter = self.genOrMake(items)
         while True:
             size = self.random.randint(0, self.size)
             yield [next(iter) for _ in xrange(size)]
@@ -66,8 +66,8 @@ class Arbitrary(object):
         return itertools.imap(tuple, self.lists(items))
 
     def key_value_generator(self, keys=integers, values=integers):
-        keys_i = self._genOrMake(keys)
-        vals_i = self._genOrMake(values)
+        keys_i = self.genOrMake(keys)
+        vals_i = self.genOrMake(values)
         while True:
             yield (next(keys), next(values))
 
@@ -76,7 +76,7 @@ class Arbitrary(object):
 
         """
         if keys is not None and values is not None:
-            key_i, val_i = self._genOrMake(keys), self._genOrMake(values)
+            key_i, val_i = self.genOrMake(keys), self.genOrMake(values)
             key_values = itertools.izip(key_i, val_i)
 
         items = self.lists(key_values)
@@ -122,10 +122,10 @@ class Arbitrary(object):
         arguments.
 
         """
-        init_args = [self._genOrMake(f) for f in init_args]
-        init_kwargs = dict((k, self._genOrMake(f))
+        init_args = [self.genOrMake(f) for f in init_args]
+        init_kwargs = dict((k, self.genOrMake(f))
                            for k, f in init_kwargs.iteritems())
-        _fields = dict((k, self._genOrMake(f))
+        _fields = dict((k, self.genOrMake(f))
                        for k, f in _fields.iteritems())
         while True:
             ctor_args = [next(arg) for arg in init_args]
