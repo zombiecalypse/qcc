@@ -125,6 +125,55 @@ The functions generating samples available are at the moment:
   additional arguments are used as generators into the `_object_class`
   constructor. The `_fields` are set afterwards.
 
+# Creating your own generators
+
+Of course this doesn't fit for all use cases, so let's define a constructor for
+a tree.
+
+```python
+    class Tree(object):
+        def __init__(self, left, right, item):
+            self.item = item
+            self.left = left
+            self.right = right
+        def show(self):
+            return "<%s %s %s>" % (self.item, self.left, self.right)
+```
+
+For best results, define a function that takes the `Arbitrary` instance as an
+arguments:
+
+```python
+    from qcc import forall, integers, floats
+
+    def genTreeRec(arbitrary, items_iter, depth):
+        while True:
+            if (arbitrary.size < depth or
+                arbitrary.random.random() < 0.25):
+                yield Tree(None, None, next(items_iter))
+            yield Tree(genTreeRec(arbitrary, items_iter, depth+1),
+                       genTreeRec(arbitrary, items_iter, depth+1),
+                       next(items_iter))
+
+    def genTree(item=integers):
+        def wrapped(arbitrary):
+            return genTreeRec(arbitrary, arbitrary.genOrMake(item), 0)
+        return wrapped
+
+    @forall(tries=1000, size=2, t=genTree(floats()))
+    def test_balanced(t):
+        assert t.show().count('<') == t.show().count('>')
+```
+
+Some things that you can see here:
+
+1. `forall` can be called with a `size` argument, that can be used to define the
+   range of the elements.
+2. The generator function should return an endless iterator when called with the
+   Arbitrary instance.
+3. You should use the `random` provided by the arbitrary instance, because it is
+   properly seeded.
+
 # Installation
 
 Until the package is uploaded to `PyPI`, the following procedure will install
