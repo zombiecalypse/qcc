@@ -135,17 +135,20 @@ class Arbitrary(object):
                 setattr(obj, k, next(v))
             yield obj
 
-    def forall(self, tries=100, **kwargs):
+    def forall(self, tries=100, size=None, seed=None, **kwargs):
         """Decorator for tests to feed randomized arguments.
 
         """
+        self.size = size
+        self.seed = seed
+        self.random = random.Random(x=seed)
         def wrap(f):
             @functools.wraps(f)
             def wrapped(*inargs, **inkwargs):
                 for _ in xrange(tries):
                     random_kwargs = dict(inkwargs)
                     for name, gen in kwargs.iteritems():
-                        random_kwargs[name] = next(gen)
+                        random_kwargs[name] = next(self.genOrMake(gen))
                     try:
                         if self.verbose:
                             pprint(random_kwargs)
