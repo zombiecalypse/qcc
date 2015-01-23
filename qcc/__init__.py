@@ -9,15 +9,6 @@ import sys
 from pprint import pprint
 
 
-def _feed(ff):
-    @functools.wraps(ff)
-    def wrapped(self, *args, **kwargs):
-        args_ = [self._genOrMake(f) for f in args]
-        kwargs_ = dict((k, self._genOrMake(f))
-                       for k, f in kwargs.items())
-        return ff(self, *args_, **kwargs_)
-    return wrapped
-
 class Arbitrary(object):
     """Environment for the running of randomized tests.
 
@@ -30,6 +21,7 @@ class Arbitrary(object):
 
     def __init__(self, seed=None, size=None, verbose=False):
         """Initializes the random generator."""
+        seed = seed or os.environ.get('QC_SEED')
         self.random = random.Random(x=seed)
         self.size = size or 256
         self.verbose = verbose or os.environ.has_key('QC_VERBOSE')
@@ -58,7 +50,6 @@ class Arbitrary(object):
             size = 2**self.random.randint(0, self.size)
             yield self.random.uniform(-size, size)
 
-    @_feed
     def lists(self, items=integers):
         """Stream of random lists up to len size.
 
@@ -68,27 +59,25 @@ class Arbitrary(object):
             size = self.random.randint(0, self.size)
             yield [next(iter) for _ in xrange(size)]
 
-    @_feed
     def tuples(self, items=integers):
         """Stream of random tuples up to len size.
 
         """
         return itertools.imap(tuple, self.lists(items))
 
-    @_feed
     def key_value_generator(self, keys=integers, values=integers):
-        keys_i, vals_i = keys(self), values(self)
+        keys_i = self._genOrMake(keys)
+        vals_i = self._genOrMake(values)
         while True:
             yield (next(keys), next(values))
 
-    @_feed
     def dicts(self, key_values=key_value_generator, keys=None, values=None):
         """Stream of random dicts up to len size.
 
         """
         if keys is not None and values is not None:
-            key_i, val_i = keys(self), values(self)
-            key_values = lambda _: itertools.izip(key_i, val_i)
+            key_i, val_i = self._genOrMake(keys), self._genOrMake(values)
+            key_values = itertools.izip(key_i, val_i)
 
         items = self.lists(key_values)
         while True:
@@ -128,7 +117,6 @@ class Arbitrary(object):
             size = self.random.randint(0, self.size)
             yield ''.join(next(chars) for _ in xrange(r))
 
-    @_feed
     def objects(self, _object_class, _fields={}, *init_args, **init_kwargs):
         """Stream of random objects with attributes from dict and constructor
         arguments.
@@ -171,38 +159,57 @@ class Arbitrary(object):
 
 DEFAULT = Arbitrary()
 
-def integers(self=None, *args, **kwargs):
-    return (self or DEFAULT).integers(*args, **kwargs)
+def get_first_or_default(args):
+    if not args:
+        return DEFAULT, args
+    if isinstance(args[0], Arbitrary):
+        return args[0], args[1:]
+    else:
+        return DEFAULT, args
 
-def non_negative(self=None, *args, **kwargs):
-    return (self or DEFAULT).non_negative(*args, **kwargs)
+def integers(*args, **kwargs):
+    self, args = get_first_or_default(args)
+    return self.integers(*args, **kwargs)
 
-def floats(self=None, *args, **kwargs):
-    return (self or DEFAULT).floats(*args, **kwargs)
+def non_negative(*args, **kwargs):
+    self, args = get_first_or_default(args)
+    return self.non_negative(*args, **kwargs)
 
-def lists(self=None, *args, **kwargs):
-    return (self or DEFAULT).lists(*args, **kwargs)
+def floats(*args, **kwargs):
+    self, args = get_first_or_default(args)
+    return self.floats(*args, **kwargs)
 
-def tuples(self=None, *args, **kwargs):
-    return (self or DEFAULT).tuples(*args, **kwargs)
+def lists(*args, **kwargs):
+    self, args = get_first_or_default(args)
+    return self.lists(*args, **kwargs)
 
-def unicode_chars(self=None, *args, **kwargs):
-    return (self or DEFAULT).unicode_chars(*args, **kwargs)
+def tuples(*args, **kwargs):
+    self, args = get_first_or_default(args)
+    return self.tuples(*args, **kwargs)
 
-def chars(self=None, *args, **kwargs):
-    return (self or DEFAULT).chars(*args, **kwargs)
+def unicode_chars(*args, **kwargs):
+    self, args = get_first_or_default(args)
+    return self.unicode_chars(*args, **kwargs)
 
-def unicodes(self=None, *args, **kwargs):
-    return (self or DEFAULT).unicodes(*args, **kwargs)
+def chars(*args, **kwargs):
+    self, args = get_first_or_default(args)
+    return self.chars(*args, **kwargs)
 
-def strings(self=None, *args, **kwargs):
-    return (self or DEFAULT).strings(*args, **kwargs)
+def unicodes(*args, **kwargs):
+    self, args = get_first_or_default(args)
+    return self.unicodes(*args, **kwargs)
 
-def objects(self=None, *args, **kwargs):
-    return (self or DEFAULT).objects(*args, **kwargs)
+def strings(*args, **kwargs):
+    self, args = get_first_or_default(args)
+    return self.strings(*args, **kwargs)
 
-def forall(self=None, *args, **kwargs):
-    return (self or DEFAULT).forall(*args, **kwargs)
+def objects(*args, **kwargs):
+    self, args = get_first_or_default(args)
+    return self.objects(*args, **kwargs)
+
+def forall(*args, **kwargs):
+    self, args = get_first_or_default(args)
+    return self.forall(*args, **kwargs)
 
 __all__ = ['integers', 'floats', 'lists', 'tuples',
            'unicodes', 'characters', 'objects', 'forall',
