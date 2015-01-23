@@ -5,9 +5,12 @@ Purpose
 Tests can either check specific examples, or general properties. The former is
 what you typically get from testing frameworks, the latter is what you get
 here. The inspiration is obviously the excellent
-[QuickCheck](https://github.com/nick8325/quickcheck) library, and this library
-is compatible to the [qc](https://github.com/dbravender/qc) library, but
+QuickCheck_ library, and this library
+is compatible to the qc_ library, but
 offers a bit more customization.
+
+.. _QuickCheck: https://github.com/nick8325/quickcheck
+.. _qc: https://github.com/dbravender/qc
 
 
 =====
